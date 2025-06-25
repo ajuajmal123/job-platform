@@ -1,27 +1,45 @@
 import mongoose from "mongoose";
+import { compareValue, hashValue } from "../utils/bcrypt";
 
-const userSchema= new mongoose.Schema(
+//create an interface for get typing for user schema
+ 
+export interface UserDocument extends mongoose.Document {
+    name:string;
+    email:string;
+    password:string;
+    verified:boolean;
+    createdAt:Date;
+    updatedAt:Date;
+    comparePassword(val:string):Promise<boolean>
+}
 
-    {   name:{
-         type:String,
-         required:true    
-      },
-        email:{type:String,
-            required:true,
-            uneque:true
-        },
-        mobile:{
-            type:String,
-            uneque:true
-        },
-        password:{
-            type:String,
-            required:true
-        }
-    },
-    {
-        timestamps:true
+const userSchema= new mongoose.Schema<UserDocument>({
+    name:{type:String},
+    email:{type:String,unique:true,required:true},
+    password:{type:String,required:true},
+    verified:{type:Boolean,required:true,default:false}
+},
+{
+    timestamps:true
+
+});
+
+// define schema hooks
+
+userSchema.pre('save',async function (next){
+    if(!this.isModified("password")){
+        return next();
     }
-);
 
-export default mongoose.model('User',userSchema)
+    this.password= await hashValue(this.password,8)
+     next();
+});
+
+userSchema.methods.comparePassword= async function (val:string){
+
+    return compareValue(val,this.password);
+};
+
+const userModel=mongoose.model<UserDocument>("User",userSchema);
+
+export default userModel;
