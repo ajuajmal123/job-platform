@@ -3,19 +3,11 @@ import { createAccount, loginUser } from "../services/auth.service";
 import {loginSchema, registerSchema} from './auth.schema'
 import catchError from "../utils/catchError";
 import z from 'zod'
-import { setAuthCookies } from "../utils/cookie";
+import { clearAuthCookies, setAuthCookies } from "../utils/cookie";
+import { verifyToken } from "../utils/jwt";
+import SessionModel from "../models/session.model";
 
-const registerSchema=z.object({
-    name: z.string().min(1).max(255),
-    email: z.string().email().min(1).max(255),
-    password: z.string().min(6).max(255),
-    confirmPassword: z.string().min(6).max(255),
-    userAgent: z.string().optional()
-}).refine((data)=>data.password===data.confirmPassword,
-{
-    message:'password do not matching',
-    path:['confirmPassword']
-});
+
 
 export const registerHandler=catchError(
    //validate request
@@ -47,4 +39,16 @@ export const registerHandler=catchError(
             .status(OK)
             .json({message:'Login successfull'});
         });
+
+    export const logoutHandler=catchError(
+        async (req,res)=>{
+            const accessToken=req.cookies.accessToken;
+            const {payload}=verifyToken(accessToken);
+            if(payload){
+                await SessionModel.findByIdAndDelete(payload.sessionId)
+            }
+            return clearAuthCookies(res).status(OK).json({
+                message:'Logout Successfull'
+            })
+        })    
 

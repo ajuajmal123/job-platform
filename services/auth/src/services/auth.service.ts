@@ -6,7 +6,8 @@ import { oneYearfromNow } from "../utils/date";
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET,JWT_REFRESH_SECRET } from "../constants/env";
 import appAssert from "../utils/appAssert";
-import { CONFLICT } from "../constants/http";
+import { CONFLICT, UNAUTHORIZED } from "../constants/http";
+import { refreshTokenSignOptions, signToken } from "../utils/jwt";
 export type createAccountParams={
     name:string;
     email:string;
@@ -38,48 +39,76 @@ const user=await userModel.create({
     password:data.password
 
 });
-
+const userId=user._id
 //create verifiction code
 const verificationCode= await VerificationCodeModel.create({
     userId:user._id,
-    type:verificationCodeType.emailVerification,
+    type:verificationCodeType.EmailVerification,
     expairesAt:oneYearfromNow()   
 });
 
 //create session  
 const session =await SessionModel.create({
-    userId:user._id,
+    userId,
     userAgent:data.userAgent
 });
 
 //sign refresh token and access token
-const refreshToken=jwt.sign(
+const refreshToken=signToken(
     {sessionId:session._id},
-    JWT_REFRESH_SECRET,
-    {
-        audience:['user'],
-        expiresIn:'7d'
-    }
+   refreshTokenSignOptions,
 );
 
-const accessToken=jwt.sign(
-    {
-        userId:user._id,
-        sessionId:session._id
-    },
-    JWT_SECRET,
-    {
-        audience:['user'],
-        expiresIn:'15m'
-    }
-);
+const accessToken=signToken({
+    userId,
+    sessionId:session._id
+})
 
 return {
-    user,
+    user:user.omitPassword(),
     accessToken,
     refreshToken
 }
- 
-// create Account 
 
 };
+export type loginParams={
+  
+email:string;
+password:string;
+userAgent?:string;
+}
+export  const loginUser= async ({email,password,userAgent}:loginParams)=>{
+       //get user by email
+       const user=await userModel.findOne({email});
+       appAssert(user,UNAUTHORIZED,"Invalid Email or Password");
+
+       //validate password from the request
+       const isValid=await user.comparePassword(password);
+       appAssert(user,UNAUTHORIZED,"Invalid Email or Password");
+
+       const userId=user._id;
+       //create session
+      const session =await SessionModel.create({
+        userId,
+        userAgent,
+      });
+
+      const sessionInfo={
+        sessionId:session._id,
+      };
+
+      const refreshToken=signToken(
+              sessionInfo,refreshTokenSignOptions,
+      );
+      const accessToken=signToken({
+        ...sessionInfo,
+        userId
+});
+
+      //return user and tokens
+      return {
+      user:user.omitPassword(),
+      accessToken,
+      refreshToken
+      }
+}
