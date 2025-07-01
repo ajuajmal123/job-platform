@@ -1,5 +1,6 @@
-import { CREATED } from "../constants/http";
-import { createAccount } from "../services/auth.service";
+import { CREATED, OK } from "../constants/http";
+import { createAccount, loginUser } from "../services/auth.service";
+import {loginSchema, registerSchema} from './auth.schema'
 import catchError from "../utils/catchError";
 import z from 'zod'
 import { setAuthCookies } from "../utils/cookie";
@@ -33,4 +34,17 @@ export const registerHandler=catchError(
      .json(user);
 
     });
+
+    export const loginHandler=catchError(
+        async (req,res)=>{
+            const request=loginSchema.parse({
+                ...req.body,
+            userAgent:req.headers['user-agent']
+            });
+         
+            const {accessToken,refreshToken}=await loginUser(request);
+            setAuthCookies({res,accessToken,refreshToken})
+            .status(OK)
+            .json({message:'Login successfull'});
+        });
 
