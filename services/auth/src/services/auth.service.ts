@@ -2,12 +2,12 @@ import verificationCodeType from "../constants/verificationCodeType";
 import SessionModel from "../models/session.model";
 import userModel from "../models/user.model";
 import VerificationCodeModel from "../models/verificationCode.model";
-import { oneYearfromNow } from "../utils/date";
+import { ONE_DAY_MS, oneYearfromNow, thirtyDaysFromNow } from "../utils/date";
 import jwt from 'jsonwebtoken'
 import { JWT_SECRET,JWT_REFRESH_SECRET } from "../constants/env";
 import appAssert from "../utils/appAssert";
 import { CONFLICT, UNAUTHORIZED } from "../constants/http";
-import { refreshTokenSignOptions, signToken } from "../utils/jwt";
+import { RefreshTokenPayload, refreshTokenSignOptions, signToken, verifyToken } from "../utils/jwt";
 export type createAccountParams={
     name:string;
     email:string;
@@ -111,4 +111,45 @@ export  const loginUser= async ({email,password,userAgent}:loginParams)=>{
       accessToken,
       refreshToken
       }
+}
+
+export const refreshUserAccessToken=async (refreshToken:string)=>{
+    const{
+        payload
+    }=verifyToken<RefreshTokenPayload>(refreshToken,{
+        secret:refreshTokenSignOptions.secret,
+    })
+    appAssert(payload,UNAUTHORIZED,'Invalid Refresh Token');
+
+    const session=await SessionModel.findById(payload.sessionId)
+    const now=Date.now()
+    appAssert(session&&session.expairesAt.getTime()>now,
+    UNAUTHORIZED,
+    'Session Expaired')
+
+    //refresh the session if it expaires in 24 hours
+   const sessionNeedsRefresh=session.expairesAt.getTime()-now<=ONE_DAY_MS
+
+   if(sessionNeedsRefresh){
+    session.expairesAt=thirtyDaysFromNow();
+    await session.save();
+   };
+
+    const newRefreshToken=sessionNeedsRefresh?signToken(
+        {
+            sessionId:session._id
+        },
+        refreshTokenSignOptions
+    ):undefined;
+
+    const accessToken=signToken(
+        {
+            userId:session.userId,
+            sessionId:session._id
+        }
+    );
+    return{
+        accessToken,
+        newRefreshToken,
+    }
 }

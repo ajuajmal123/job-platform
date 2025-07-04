@@ -1,11 +1,12 @@
-import { CREATED, OK } from "../constants/http";
-import { createAccount, loginUser } from "../services/auth.service";
+import { CREATED, OK, UNAUTHORIZED } from "../constants/http";
+import { createAccount, loginUser, refreshUserAccessToken } from "../services/auth.service";
 import {loginSchema, registerSchema} from './auth.schema'
 import catchError from "../utils/catchError";
 import z from 'zod'
-import { clearAuthCookies, setAuthCookies } from "../utils/cookie";
+import { clearAuthCookies, getRefreshTokenCookieOptions, setAuthCookies } from "../utils/cookie";
 import { verifyToken } from "../utils/jwt";
 import SessionModel from "../models/session.model";
+import appAssert from "../utils/appAssert";
 
 
 
@@ -42,8 +43,8 @@ export const registerHandler=catchError(
 
     export const logoutHandler=catchError(
         async (req,res)=>{
-            const accessToken=req.cookies.accessToken;
-            const {payload}=verifyToken(accessToken);
+            const accessToken=req.cookies.accessToken as string|undefined
+            const {payload}=verifyToken(accessToken ||'');
             if(payload){
                 await SessionModel.findByIdAndDelete(payload.sessionId)
             }
@@ -52,3 +53,18 @@ export const registerHandler=catchError(
             })
         })    
 
+export const refreshHandler=catchError(
+    async (req,res)=>{
+      const refreshToken=req.cookies.refreshToken as string|undefined
+      appAssert(refreshToken,UNAUTHORIZED,'Refresh token Missing');
+     const {accessToken,newRefreshToken}=await refreshUserAccessToken(refreshToken);
+     if(newRefreshToken){
+        res.cookie('refreshToken',newRefreshToken,getRefreshTokenCookieOptions())
+     }
+     return res
+     .status(OK)
+     .cookie('accessToken',accessToken,getRefreshTokenCookieOptions())
+     .json({
+        message:'access token refreshed'
+     })
+    })
