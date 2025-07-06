@@ -1,6 +1,6 @@
 import { CREATED, OK, UNAUTHORIZED } from "../constants/http";
-import { createAccount, loginUser, refreshUserAccessToken } from "../services/auth.service";
-import {loginSchema, registerSchema} from './auth.schema'
+import { createAccount, loginUser, refreshUserAccessToken, verifyEmail } from "../services/auth.service";
+import {emailSchema, loginSchema, registerSchema, verificationCodeSchema} from './auth.schema'
 import catchError from "../utils/catchError";
 import z from 'zod'
 import { clearAuthCookies, getRefreshTokenCookieOptions, setAuthCookies } from "../utils/cookie";
@@ -67,4 +67,18 @@ export const refreshHandler=catchError(
      .json({
         message:'access token refreshed'
      })
+    });
+
+export const verifyEmailHandler=catchError(
+    async (req,res)=>{
+    const verificationCode=verificationCodeSchema.parse(req.params.code)
+    await verifyEmail(verificationCode);
+    return res.status(OK).json({
+        message:'Email Varified successfully'
     })
+});   
+
+export const resetPasswordHandler=catchError(
+    async (req,res)=>{
+     const email=emailSchema.parse(req.body.email)
+})

@@ -4,10 +4,12 @@ import userModel from "../models/user.model";
 import VerificationCodeModel from "../models/verificationCode.model";
 import { ONE_DAY_MS, oneYearfromNow, thirtyDaysFromNow } from "../utils/date";
 import jwt from 'jsonwebtoken'
-import { JWT_SECRET,JWT_REFRESH_SECRET } from "../constants/env";
+import { JWT_SECRET,JWT_REFRESH_SECRET, APP_ORIGIN } from "../constants/env";
 import appAssert from "../utils/appAssert";
-import { CONFLICT, UNAUTHORIZED } from "../constants/http";
+import { CONFLICT, INTERNAL_SERVER_ERROR, NOT_FOUND, UNAUTHORIZED } from "../constants/http";
 import { RefreshTokenPayload, refreshTokenSignOptions, signToken, verifyToken } from "../utils/jwt";
+import { sendMail } from "../utils/sendMail";
+import { getVerifyEmailTemplate } from "../utils/emailTemplate";
 export type createAccountParams={
     name:string;
     email:string;
@@ -45,6 +47,13 @@ const verificationCode= await VerificationCodeModel.create({
     userId:user._id,
     type:verificationCodeType.EmailVerification,
     expairesAt:oneYearfromNow()   
+});
+
+//send verify mail
+const url=`${APP_ORIGIN}/email/verify/${verificationCode._id}`
+await sendMail({
+    to:user.email,
+    ...getVerifyEmailTemplate(url),
 });
 
 //create session  
@@ -152,4 +161,36 @@ export const refreshUserAccessToken=async (refreshToken:string)=>{
         accessToken,
         newRefreshToken,
     }
+};
+
+export const verifyEmail=async (code:string)=>{
+    const validCode=await VerificationCodeModel.findOne({
+        _id:code,
+        type:verificationCodeType.EmailVerification,
+        expairesAt:{$gt:new Date()},
+    });
+
+    appAssert(validCode,NOT_FOUND,'Invalid verification code or verification code not found');
+
+    const updatedUser= await userModel.findByIdAndUpdate(
+        validCode.userId,
+        {
+            verified:true
+        },
+        {
+            new:true
+        }
+    );
+    appAssert(updatedUser,INTERNAL_SERVER_ERROR,'faild to varify email');
+    await validCode.deleteOne()
+    return {
+      user:updatedUser.omitPassword(),
+    }
+};
+
+export const sendPasswordResetEmail= async (email:string)=>{
+    const user=await userModel.findOne({email});
+    appAssert(user,NOT_FOUND,'User not found');
+
+    const fiveMinutesAgo=
 }
