@@ -46,7 +46,7 @@ interface VerifyTokenOptions extends VerifyOptions {
     secret: string;
 }
 
-export const verifyToken = <TPayload extends object = AccessTokenPayload>(
+ export const verifyToken = <TPayload extends object = AccessTokenPayload>(
     token: string,
     options?: VerifyTokenOptions
 ) => {
@@ -65,4 +65,4 @@ export const verifyToken = <TPayload extends object = AccessTokenPayload>(
             error: error.message
         };
     }
-};
+}; 

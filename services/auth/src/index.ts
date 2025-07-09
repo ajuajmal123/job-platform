@@ -8,6 +8,8 @@ import { MONGODB_URI ,APP_ORIGIN} from './constants/env';
 import errorHandler from './middleware/errorHandler';
 import catchError from './utils/catchError';
 import authRoutes from './routes/auth.route';
+import authenticate from './middleware/authenticate';
+import userRoutes from './routes/user.routes';
 
 const app=express();
 const PORT=process.env.PORT||5000
@@ -28,9 +30,14 @@ catchError(app.get('/', (req,res)=>{
     res.send('auth service is running');
 })  );
 
-app.use('/auth',authRoutes)
+//auth routes
+app.use('/auth',authRoutes);
 
-app.use(errorHandler)
+//protected route
+app.use('/user',authenticate,userRoutes);
+
+//errorhandler middleware
+app.use(errorHandler);
 //server
 const serverStart= async ()=>{
 try {

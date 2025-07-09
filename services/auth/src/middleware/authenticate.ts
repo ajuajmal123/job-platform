@@ -2,13 +2,14 @@ import { RequestHandler } from "express";
 import appAssert from "../utils/appAssert";
 import AppErrorCode from "../constants/appErrorCode";
 import { UNAUTHORIZED } from "../constants/http";
-import { verifyToken } from "../utils/jwt";
+import { AccessTokenPayload, verifyToken } from "../utils/jwt";
 import mongoose from "mongoose";
-import { unknown } from "zod";
 
-// wrap with catchErrors() if you need this to be async
+
+
 const authenticate: RequestHandler = (req, res, next) => {
   const accessToken = req.cookies.accessToken as string | undefined;
+  
   appAssert(
     accessToken,
     UNAUTHORIZED,
@@ -16,7 +17,7 @@ const authenticate: RequestHandler = (req, res, next) => {
     AppErrorCode.InvalidAccesToken
   );
 
-  const { error, payload } = verifyToken(accessToken);
+  const { error, payload } = verifyToken<AccessTokenPayload>(accessToken);
   appAssert(
     payload,
     UNAUTHORIZED,
@@ -24,8 +25,8 @@ const authenticate: RequestHandler = (req, res, next) => {
     AppErrorCode.InvalidAccesToken
   );
 
-  req.userId = payload.userId as unknown as mongoose.Types.ObjectId;
-  req.sessionId = payload.sessionId as unknown as mongoose.Types.ObjectId;
+  req.userId = payload.userId  as unknown as mongoose.Types.ObjectId
+  req.sessionId = payload.sessionId as unknown as mongoose.Types.ObjectId
   next();
 };
 
