@@ -25,8 +25,8 @@ const authenticate: RequestHandler = (req, res, next) => {
     AppErrorCode.InvalidAccesToken
   );
 
-  req.userId = payload.userId  as unknown as mongoose.Types.ObjectId
-  req.sessionId = payload.sessionId as unknown as mongoose.Types.ObjectId
+  req.userId = payload.userId   
+  req.sessionId = payload.sessionId 
   next();
 };
 

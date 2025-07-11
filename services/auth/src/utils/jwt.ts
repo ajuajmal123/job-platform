@@ -56,7 +56,7 @@ interface VerifyTokenOptions extends VerifyOptions {
             token, 
             secret, 
             { ...defaults, ...VerifyOpts }
-        ) as unknown as TPayload;
+        )  as TPayload;
         return {
             payload
         };
