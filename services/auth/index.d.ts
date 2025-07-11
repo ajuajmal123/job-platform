@@ -1,14 +1,11 @@
+import { Request } from "express";
 import mongoose from "mongoose";
-import { AccessTokenPayload } from "./src/utils/jwt";
 
-declare global {
-    namespace Express{
-        interface Request{
-            userId:Types.ObjectId;
-            sessionId:Types.ObjectId;
-            
-        }
-    }
+declare module "express-serve-static-core" {
+  interface Request {
+    userId?: Types.ObjectId;
+    sessionId?:Types.ObjectId;
+  }
 }
 
-export {}
+
