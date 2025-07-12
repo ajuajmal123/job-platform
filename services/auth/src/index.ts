@@ -10,6 +10,7 @@ import catchError from './utils/catchError';
 import authRoutes from './routes/auth.route';
 import authenticate from './middleware/authenticate';
 import userRoutes from './routes/user.routes';
+import sessionRoutes from './routes/session.route';
 
 const app=express();
 const PORT=process.env.PORT||5000
@@ -35,6 +36,7 @@ app.use('/auth',authRoutes);
 
 //protected route
 app.use('/user',authenticate,userRoutes);
+app.use('/sessions',authenticate,sessionRoutes)
 
 //errorhandler middleware
 app.use(errorHandler);
