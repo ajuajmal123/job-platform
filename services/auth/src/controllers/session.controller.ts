@@ -48,4 +48,4 @@ export const deleteSessionHandler=catchError(
       res.status(OK).json({
         message:'Session Removed'
       })
-})
+});
