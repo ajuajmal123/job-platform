@@ -1,15 +1,35 @@
-import express from 'express'
-import cors from 'cors'
-import dotenv from 'dotenv'
-import mongoose from 'mongoose'
+import express from "express";
+import cors from "cors";
+import cookieParser from 'cookie-parser'
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+dotenv.config();
+import { APP_ORIGIN, MONGODB_URI } from "./constants/env";
 
 
-dotenv.config()
-const app=express()
-const PORT=process.env.PORT||5001
-app.use(cors());
-app.use(express.json())
+const app = express();
+const PORT = process.env.PORT || 5001;
+app.use(express.json());
+app.use(express.urlencoded({extended:true}));
+app.use(cors(
+    {
+        origin:APP_ORIGIN,
+        credentials:true,
+    }
+));
+app.use(cookieParser())
 
-app.listen(PORT,()=>{
-console.log(`user service is litening to ${PORT}`)
-});
+const serverStart = async () => {
+  try {
+    await mongoose.connect(MONGODB_URI);
+    console.log("DB connected sussessfully");
+    app.listen(PORT, () => {
+      console.log(`user service is litening to ${PORT}`);
+    });
+  } catch (error) {
+    console.error('failed to connect DB',error);
+    process.exit(1)
+  }
+};
+
+serverStart()
