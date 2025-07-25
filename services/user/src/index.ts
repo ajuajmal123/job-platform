@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 dotenv.config();
 import { APP_ORIGIN, MONGODB_URI } from "./constants/env";
+import userRoutes from "./routes/user.route";
 
 
 const app = express();
@@ -17,7 +18,8 @@ app.use(cors(
         credentials:true,
     }
 ));
-app.use(cookieParser())
+app.use(cookieParser());
+app.use('/api/users',userRoutes);
 
 const serverStart = async () => {
   try {
